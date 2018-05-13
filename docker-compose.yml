@@ -1,0 +1,46 @@
+version: "2"
+services:
+  # HTTPS LETSENCRYPT
+  letsencrypt:
+    build: ./letsencrypt
+    command: /bin/true
+    volumes:
+      - letsencrypt_certs:/etc/letsencrypt
+      - letsencrypt_www:/var/www/letsencrypt
+  
+  # NGINX REVERSE PROXY
+  nginx:
+    build: ./nginx
+    volumes:
+      - letsencrypt_certs:/etc/nginx/certs
+      - letsencrypt_www:/var/www/letsencrypt
+    restart: always
+    depends_on:
+      - dummy_app
+    links:
+      - dummy_app
+    ports:
+      - "80:80"
+      - "443:443"
+
+  # APPS
+  dummy_app:
+    build: ./dummy-app
+    restart: always
+    expose:
+      - "3000"
+    links:
+      - mongo
+    depends_on:
+     - mongo
+  mongo:
+    image: mongo
+    volumes:
+      - ./volumes/mongo/:/data/db
+    ports:
+      - "27017:27017"
+
+volumes:
+  # LETSENCRYPT VOLUMES - SHARED WITH NGINX
+  letsencrypt_certs: ~
+  letsencrypt_www: ~
